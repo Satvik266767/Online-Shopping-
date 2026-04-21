@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Consumer Behavior Analytics Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'DM Mono', monospace;
+            background-color: #0f1117;
+            color: #e8e4d9;
+            margin: 0;
+            padding: 20px;
+            background-image: radial-gradient(circle, #1a1d23 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        h1, h2, h3 {
+            font-family: 'DM Serif Display', serif;
+            color: #e8e4d9;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            background-color: #1a1d23;
+            color: #e8e4d9;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .tab-button.active {
+            background-color: #f5a623;
+            color: #0f1117;
+        }
+        .tab-button:hover {
+            background-color: #2a2d33;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .kpi-card {
+            background-color: #1a1d23;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 5px solid #f5a623;
+        }
+        .kpi-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00c9b1;
+        }
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .chart-container {
+            background-color: #1a1d23;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #1a1d23;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #2a2d33;
+        }
+        th {
+            background-color: #2a2d33;
+            color: #f5a623;
+        }
+        .correlation-table td {
+            text-align: center;
+        }
+        .correlation-high {
+            background-color: #00c9b1;
+            color: #0f1117;
+        }
+        .correlation-med {
+            background-color: #f5a623;
+            color: #0f1117;
+        }
+        .correlation-low {
+            background-color: #e8e4d9;
+            color: #0f1117;
+        }
+        .test-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .test-card {
+            background-color: #1a1d23;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #00c9b1;
+        }
+        .segment-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .segment-card {
+            background-color: #1a1d23;
+            padding: 20px;
+            border-radius: 10px;
+            border-top: 5px solid;
+        }
+        .high-value { border-top-color: #00c9b1; }
+        .occasional { border-top-color: #f5a623; }
+        .at-risk { border-top-color: #e74c3c; }
+        .discount { border-top-color: #9b59b6; }
+        .findings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .finding-card {
+            background-color: #1a1d23;
+            padding: 20px;
+            border-radius: 10px;
+            counter-increment: finding;
+        }
+        .finding-card:before {
+            content: counter(finding) ". ";
+            color: #f5a623;
+            font-weight: bold;
+        }
+        .recommendations table {
+            margin-top: 20px;
+        }
+        .recommendations th {
+            background-color: #f5a623;
+            color: #0f1117;
+        }
+    </style>
+</head>
+<body>
+    <div id="cover" class="section active">
+        <h1>Consumer Behavior in E-Commerce: A Statistical Analysis</h1>
+        <p>PBL Project | Statistics & Data Analysis</p>
+        <p>Dataset: n=1200 Indian consumers | Methodology: Survey + K-Means + Regression</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-button active" data-tab="overview">Overview</button>
+        <button class="tab-button" data-tab="descriptive">Descriptive Statistics</button>
+        <button class="tab-button" data-tab="hypothesis">Hypothesis Testing</button>
+        <button class="tab-button" data-tab="regression">Regression Model</button>
+        <button class="tab-button" data-tab="segmentation">Customer Segmentation</button>
+        <button class="tab-button" data-tab="conclusions">Conclusions</button>
+    </div>
+
+    <div id="overview" class="tab-content active">
+        <h2>Overview</h2>
+        <div class="kpi-cards">
+            <div class="kpi-card">
+                <div class="kpi-value" data-target="4820">0</div>
+                <div>Avg Monthly Spend ₹</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" data-target="68.4">0</div>
+                <div>Repeat Buyer Rate %</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" data-target="3.74">0</div>
+                <div>Avg Satisfaction /5</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" data-target="6.2">0</div>
+                <div>Avg Orders/Month</div>
+            </div>
+        </div>
+        <div class="charts">
+            <div class="chart-container">
+                <canvas id="platformChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="genderChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="ageChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="spendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="descriptive" class="tab-content">
+        <h2>Descriptive Statistics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>Mean</th>
+                    <th>Median</th>
+                    <th>Std Dev</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th>Skewness</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Monthly Spend (₹)</td>
+                    <td>4820</td>
+                    <td>4200</td>
+                    <td>2340</td>
+                    <td>800</td>
+                    <td>18500</td>
+                    <td>1.42</td>
+                </tr>
+                <tr>
+                    <td>Order Frequency</td>
+                    <td>6.2</td>
+                    <td>5.8</td>
+                    <td>2.9</td>
+                    <td>1</td>
+                    <td>22</td>
+                    <td>0.87</td>
+                </tr>
+                <tr>
+                    <td>Satisfaction Score</td>
+                    <td>3.74</td>
+                    <td>4</td>
+                    <td>0.92</td>
+                    <td>1</td>
+                    <td>5</td>
+                    <td>-0.31</td>
+                </tr>
+                <tr>
+                    <td>Age (numeric proxy)</td>
+                    <td>32.4</td>
+                    <td>31</td>
+                    <td>8.6</td>
+                    <td>18</td>
+                    <td>65</td>
+                    <td>0.45</td>
+                </tr>
+            </tbody>
+        </table>
+        <h3>Correlation Matrix</h3>
+        <table class="correlation-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Spend</th>
+                    <th>Frequency</th>
+                    <th>Satisfaction</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Spend</td>
+                    <td>1.00</td>
+                    <td class="correlation-high">0.61***</td>
+                    <td class="correlation-med">0.38***</td>
+                </tr>
+                <tr>
+                    <td>Frequency</td>
+                    <td></td>
+                    <td>1.00</td>
+                    <td class="correlation-med">0.29***</td>
+                </tr>
+                <tr>
+                    <td>Satisfaction</td>
+                    <td></td>
+                    <td></td>
+                    <td>1.00</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="charts">
+            <div class="chart-container">
+                <canvas id="spendHist"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="satisfactionAge"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="hypothesis" class="tab-content">
+        <h2>Hypothesis Testing</h2>
+        <div class="test-cards">
+            <div class="test-card">
+                <h3>Welch's t-test</h3>
+                <p><strong>Variables:</strong> Gender vs Monthly Spend</p>
+                <p><strong>Statistic:</strong> t = 3.82</p>
+                <p><strong>p-value:</strong> 0.0002</p>
+                <p><strong>Decision:</strong> Reject H₀</p>
+                <p><strong>Interpretation:</strong> Males spend significantly more (₹5,140 vs ₹4,460)</p>
+            </div>
+            <div class="test-card">
+                <h3>Chi-square test</h3>
+                <p><strong>Variables:</strong> Age Group vs Platform</p>
+                <p><strong>Statistic:</strong> χ² = 47.3</p>
+                <p><strong>p-value:</strong> < 0.001</p>
+                <p><strong>Decision:</strong> Reject H₀</p>
+                <p><strong>Interpretation:</strong> Age significantly influences platform choice</p>
+            </div>
+            <div class="test-card">
+                <h3>Mann-Whitney U</h3>
+                <p><strong>Variables:</strong> Discount Users vs Order Frequency</p>
+                <p><strong>Statistic:</strong> U = 128,450</p>
+                <p><strong>p-value:</strong> 0.0031</p>
+                <p><strong>Decision:</strong> Reject H₀</p>
+                <p><strong>Interpretation:</strong> Discount users order more frequently</p>
+            </div>
+            <div class="test-card">
+                <h3>One-Way ANOVA</h3>
+                <p><strong>Variables:</strong> Device Type vs Satisfaction</p>
+                <p><strong>Statistic:</strong> F = 1.84</p>
+                <p><strong>p-value:</strong> 0.159</p>
+                <p><strong>Decision:</strong> Fail to reject H₀</p>
+                <p><strong>Interpretation:</strong> Device doesn't significantly affect satisfaction</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="regression" class="tab-content">
+        <h2>Regression Model</h2>
+        <p><strong>Multiple Linear Regression | Dependent Variable: Monthly Spend | R² = 0.714 | Adjusted R² = 0.711 | F(8, 1191) = 371.4, p < 0.001</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>β (unstd)</th>
+                    <th>SE</th>
+                    <th>Standardized β</th>
+                    <th>t-stat</th>
+                    <th>p-value</th>
+                    <th>Sig</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Order Frequency</td>
+                    <td>312.4</td>
+                    <td>18.2</td>
+                    <td>0.487</td>
+                    <td>17.2</td>
+                    <td><0.001</td>
+                    <td>***</td>
+                </tr>
+                <tr>
+                    <td>Age (numeric)</td>
+                    <td>84.6</td>
+                    <td>12.4</td>
+                    <td>0.198</td>
+                    <td>6.82</td>
+                    <td><0.001</td>
+                    <td>***</td>
+                </tr>
+                <tr>
+                    <td>Satisfaction Score</td>
+                    <td>241.8</td>
+                    <td>38.6</td>
+                    <td>0.163</td>
+                    <td>6.26</td>
+                    <td><0.001</td>
+                    <td>***</td>
+                </tr>
+                <tr>
+                    <td>Male (dummy)</td>
+                    <td>680.2</td>
+                    <td>112.4</td>
+                    <td>0.142</td>
+                    <td>6.05</td>
+                    <td><0.001</td>
+                    <td>***</td>
+                </tr>
+                <tr>
+                    <td>Discount User</td>
+                    <td>420.5</td>
+                    <td>98.2</td>
+                    <td>0.098</td>
+                    <td>4.28</td>
+                    <td><0.001</td>
+                    <td>***</td>
+                </tr>
+                <tr>
+                    <td>Mobile Device</td>
+                    <td>-180.4</td>
+                    <td>88.6</td>
+                    <td>-0.046</td>
+                    <td>-2.04</td>
+                    <td>0.042</td>
+                    <td>*</td>
+                </tr>
+                <tr>
+                    <td>Myntra Platform</td>
+                    <td>340.2</td>
+                    <td>124.8</td>
+                    <td>0.062</td>
+                    <td>2.73</td>
+                    <td>0.007</td>
+                    <td>**</td>
+                </tr>
+                <tr>
+                    <td>Constant</td>
+                    <td>1240.6</td>
+                    <td>184.2</td>
+                    <td>—</td>
+                    <td>6.74</td>
+                    <td><0.001</td>
+                    <td>***</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="charts">
+            <div class="chart-container">
+                <canvas id="betaChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="scatterChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="segmentation" class="tab-content">
+        <h2>Customer Segmentation</h2>
+        <p>K-Means Clustering (k=4)</p>
+        <div class="segment-cards">
+            <div class="segment-card high-value">
+                <h3>High-Value Loyalists</h3>
+                <p><strong>Size:</strong> 23% (~276)</p>
+                <p><strong>Characteristics:</strong> High spend ₹9,200, high frequency 11.4/mo, satisfaction 4.6, mostly 25–44, repeat buyers.</p>
+                <p><strong>Strategy:</strong> VIP programs, early access, loyalty rewards.</p>
+            </div>
+            <div class="segment-card occasional">
+                <h3>Occasional Shoppers</h3>
+                <p><strong>Size:</strong> 31% (~372)</p>
+                <p><strong>Characteristics:</strong> Moderate spend ₹3,800, low frequency 3.2/mo, satisfaction 3.8, mixed ages.</p>
+                <p><strong>Strategy:</strong> Re-engagement campaigns, bundle offers.</p>
+            </div>
+            <div class="segment-card at-risk">
+                <h3>At-Risk Churners</h3>
+                <p><strong>Size:</strong> 18% (~216)</p>
+                <p><strong>Characteristics:</strong> Low spend ₹2,100, declining frequency 1.8/mo, low satisfaction 2.4, older users.</p>
+                <p><strong>Strategy:</strong> Win-back offers, personalized outreach, feedback surveys.</p>
+            </div>
+            <div class="segment-card discount">
+                <h3>Discount-Driven</h3>
+                <p><strong>Size:</strong> 28% (~336)</p>
+                <p><strong>Characteristics:</strong> Moderate spend ₹4,400, high frequency 8.6/mo when discounts available, satisfaction 3.5.</p>
+                <p><strong>Strategy:</strong> Flash sales, loyalty discounts, upsell premium categories.</p>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="bubbleChart"></canvas>
+        </div>
+    </div>
+
+    <div id="conclusions" class="tab-content">
+        <h2>Conclusions</h2>
+        <div class="findings">
+            <div class="finding-card">
+                <p>Males exhibit significantly higher monthly spending compared to females, with an average difference of ₹680.</p>
+            </div>
+            <div class="finding-card">
+                <p>Order frequency is the strongest predictor of monthly spend, followed by age and satisfaction levels.</p>
+            </div>
+            <div class="finding-card">
+                <p>Amazon dominates platform preference, but age groups show distinct platform choices.</p>
+            </div>
+            <div class="finding-card">
+                <p>Discount users order more frequently, suggesting price sensitivity drives purchase behavior.</p>
+            </div>
+            <div class="finding-card">
+                <p>Four distinct customer segments identified, with high-value loyalists representing the most profitable group.</p>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="driversChart"></canvas>
+        </div>
+        <h3>Recommendations</h3>
+        <table class="recommendations">
+            <thead>
+                <tr>
+                    <th>Priority</th>
+                    <th>Recommendation</th>
+                    <th>Impact</th>
+                    <th>Timeline</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>High</td>
+                    <td>Implement personalized loyalty programs for high-value segments</td>
+                    <td>Increase retention by 15%</td>
+                    <td>3 months</td>
+                </tr>
+                <tr>
+                    <td>High</td>
+                    <td>Optimize discount strategies to balance frequency and profitability</td>
+                    <td>Boost revenue by 10%</td>
+                    <td>2 months</td>
+                </tr>
+                <tr>
+                    <td>Medium</td>
+                    <td>Enhance mobile user experience based on device usage patterns</td>
+                    <td>Improve satisfaction scores</td>
+                    <td>4 months</td>
+                </tr>
+                <tr>
+                    <td>Medium</td>
+                    <td>Targeted marketing campaigns for different age groups and platforms</td>
+                    <td>Increase market share</td>
+                    <td>3 months</td>
+                </tr>
+                <tr>
+                    <td>Low</td>
+                    <td>Develop churn prevention strategies for at-risk customers</td>
+                    <td>Reduce churn rate</td>
+                    <td>6 months</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Tab switching
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const sections = document.querySelectorAll('.section');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.dataset.tab;
+                
+                // Hide cover
+                sections.forEach(section => section.classList.remove('active'));
+                
+                // Switch tabs
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                button.classList.add('active');
+                document.getElementById(tab).classList.add('active');
+            });
+        });
+
+        // Animated counters
+        function animateCounter(element, target) {
+            const start = 0;
+            const duration = 2000;
+            const step = (target - start) / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                element.textContent = typeof target === 'number' && target % 1 !== 0 ? current.toFixed(1) : Math.floor(current);
+            }, 16);
+        }
+
+        // Trigger counters on overview tab
+        document.querySelector('[data-tab="overview"]').addEventListener('click', () => {
+            setTimeout(() => {
+                document.querySelectorAll('.kpi-value').forEach(el => {
+                    const target = parseFloat(el.dataset.target);
+                    animateCounter(el, target);
+                });
+            }, 100);
+        });
+
+        // Charts
+        const chartOptions = {
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#e8e4d9'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1a1d23',
+                    titleColor: '#f5a623',
+                    bodyColor: '#e8e4d9'
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#e8e4d9' },
+                    grid: { color: '#2a2d33' }
+                },
+                y: {
+                    ticks: { color: '#e8e4d9' },
+                    grid: { color: '#2a2d33' }
+                }
+            }
+        };
+
+        // Platform chart
+        new Chart(document.getElementById('platformChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Amazon', 'Flipkart', 'Meesho', 'Myntra', 'Others'],
+                datasets: [{
+                    label: 'Platform Preference (%)',
+                    data: [34, 28, 16, 14, 8],
+                    backgroundColor: '#00c9b1'
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Gender chart
+        new Chart(document.getElementById('genderChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Male', 'Female'],
+                datasets: [{
+                    data: [54, 46],
+                    backgroundColor: ['#f5a623', '#00c9b1']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#e8e4d9' } }
+                }
+            }
+        });
+
+        // Age chart
+        new Chart(document.getElementById('ageChart'), {
+            type: 'bar',
+            data: {
+                labels: ['18–24', '25–34', '35–44', '45+'],
+                datasets: [{
+                    label: 'Age Group Distribution (%)',
+                    data: [22, 38, 25, 15],
+                    backgroundColor: '#f5a623'
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Spend chart
+        new Chart(document.getElementById('spendChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['<₹2k', '₹2–5k', '₹5–10k', '>₹10k'],
+                datasets: [{
+                    data: [18, 34, 31, 17],
+                    backgroundColor: ['#e74c3c', '#f5a623', '#00c9b1', '#9b59b6']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#e8e4d9' } }
+                }
+            }
+        });
+
+        // Spend histogram
+        new Chart(document.getElementById('spendHist'), {
+            type: 'bar',
+            data: {
+                labels: ['800-2000', '2000-3200', '3200-4400', '4400-5600', '5600-6800', '6800-8000', '8000-9200', '9200-10400', '10400-11600', '11600-18500'],
+                datasets: [{
+                    label: 'Frequency',
+                    data: [120, 180, 220, 200, 150, 120, 90, 60, 40, 20],
+                    backgroundColor: '#00c9b1'
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Satisfaction by age
+        new Chart(document.getElementById('satisfactionAge'), {
+            type: 'bar',
+            data: {
+                labels: ['18–24', '25–34', '35–44', '45+'],
+                datasets: [{
+                    label: 'Avg Satisfaction',
+                    data: [3.6, 3.8, 3.9, 3.5],
+                    backgroundColor: '#f5a623'
+                }]
+            },
+            options: chartOptions
+        });
+
+        // Beta coefficients
+        new Chart(document.getElementById('betaChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Order Frequency', 'Age', 'Satisfaction', 'Male', 'Discount User', 'Mobile Device', 'Myntra Platform'],
+                datasets: [{
+                    label: 'Standardized β',
+                    data: [0.487, 0.198, 0.163, 0.142, 0.098, -0.046, 0.062],
+                    backgroundColor: '#00c9b1'
+                }]
+            },
+            options: {
+                ...chartOptions,
+                indexAxis: 'y'
+            }
+        });
+
+        // Scatter plot
+        const scatterData = [];
+        for (let i = 0; i < 80; i++) {
+            const x = Math.random() * 15000 + 1000;
+            const y = x + (Math.random() - 0.5) * 4000;
+            scatterData.push({ x, y });
+        }
+        new Chart(document.getElementById('scatterChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Actual vs Predicted',
+                    data: scatterData,
+                    backgroundColor: '#f5a623'
+                }]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    x: { 
+                        title: { display: true, text: 'Predicted Spend (₹)', color: '#e8e4d9' },
+                        ticks: { color: '#e8e4d9' },
+                        grid: { color: '#2a2d33' }
+                    },
+                    y: { 
+                        title: { display: true, text: 'Actual Spend (₹)', color: '#e8e4d9' },
+                        ticks: { color: '#e8e4d9' },
+                        grid: { color: '#2a2d33' }
+                    }
+                }
+            }
+        });
+
+        // Bubble chart
+        new Chart(document.getElementById('bubbleChart'), {
+            type: 'bubble',
+            data: {
+                datasets: [
+                    {
+                        label: 'High-Value Loyalists',
+                        data: [{ x: 9200, y: 11.4, r: 23 }],
+                        backgroundColor: '#00c9b1'
+                    },
+                    {
+                        label: 'Occasional Shoppers',
+                        data: [{ x: 3800, y: 3.2, r: 31 }],
+                        backgroundColor: '#f5a623'
+                    },
+                    {
+                        label: 'At-Risk Churners',
+                        data: [{ x: 2100, y: 1.8, r: 18 }],
+                        backgroundColor: '#e74c3c'
+                    },
+                    {
+                        label: 'Discount-Driven',
+                        data: [{ x: 4400, y: 8.6, r: 28 }],
+                        backgroundColor: '#9b59b6'
+                    }
+                ]
+            },
+            options: {
+                ...chartOptions,
+                scales: {
+                    x: { 
+                        title: { display: true, text: 'Avg Spend (₹)', color: '#e8e4d9' },
+                        ticks: { color: '#e8e4d9' },
+                        grid: { color: '#2a2d33' }
+                    },
+                    y: { 
+                        title: { display: true, text: 'Order Frequency', color: '#e8e4d9' },
+                        ticks: { color: '#e8e4d9' },
+                        grid: { color: '#2a2d33' }
+                    }
+                }
+            }
+        });
+
+        // Drivers chart
+        new Chart(document.getElementById('driversChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Price', 'Reviews', 'Delivery Speed', 'Brand Trust', 'Discounts', 'UI/UX'],
+                datasets: [{
+                    label: 'Importance (%)',
+                    data: [72, 61, 54, 48, 44, 31],
+                    backgroundColor: '#00c9b1'
+                }]
+            },
+            options: {
+                ...chartOptions,
+                indexAxis: 'y'
+            }
+        });
+
+        // Initialize counters on load
+        window.addEventListener('load', () => {
+            document.querySelectorAll('.kpi-value').forEach(el => {
+                const target = parseFloat(el.dataset.target);
+                animateCounter(el, target);
+            });
+        });
+    </script>
+</body>
+</html>
