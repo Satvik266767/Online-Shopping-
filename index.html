@@ -179,6 +179,7 @@
         <button class="tab-button" data-tab="regression">Regression Model</button>
         <button class="tab-button" data-tab="segmentation">Customer Segmentation</button>
         <button class="tab-button" data-tab="conclusions">Conclusions</button>
+        <button class="tab-button" data-tab="data-input">Data Input</button>
     </div>
 
     <div id="overview" class="tab-content active">
@@ -550,7 +551,67 @@
         </table>
     </div>
 
+    <div id="data-input" class="tab-content">
+        <h2>Data Input</h2>
+        <p>Upload your own CSV file with the following columns: Gender, Age Group, Monthly Spend, Platform, Device, Repeat Buyer, Discount User, Satisfaction Score, Order Frequency</p>
+        <input type="file" id="csvFile" accept=".csv">
+        <button id="loadDataBtn">Load Data</button>
+        <p id="dataStatus">No data loaded. Using default simulated data.</p>
+    </div>
+
     <script>
+        // Default data generation
+        let data = [];
+        let isDataLoaded = false;
+
+        function generateDefaultData() {
+            // Generate simulated data
+            const platforms = ['Amazon', 'Flipkart', 'Meesho', 'Myntra', 'Others'];
+            const ageGroups = ['18–24', '25–34', '35–44', '45+'];
+            const devices = ['Mobile', 'Desktop', 'Tablet'];
+            const genders = ['Male', 'Female'];
+            for (let i = 0; i < 1200; i++) {
+                data.push({
+                    gender: genders[Math.floor(Math.random() * genders.length)],
+                    agegroup: ageGroups[Math.floor(Math.random() * ageGroups.length)],
+                    monthlyspend: Math.floor(Math.random() * 15000) + 800,
+                    platform: platforms[Math.floor(Math.random() * platforms.length)],
+                    device: devices[Math.floor(Math.random() * devices.length)],
+                    repeatbuyer: Math.random() > 0.3 ? 'Yes' : 'No',
+                    discountuser: Math.random() > 0.4 ? 'Yes' : 'No',
+                    satisfactionscore: Math.floor(Math.random() * 5) + 1,
+                    orderfrequency: Math.floor(Math.random() * 20) + 1
+                });
+            }
+        }
+
+        generateDefaultData();
+
+        // Compute initial stats
+        const platformCounts = {};
+        data.forEach(d => platformCounts[d.platform] = (platformCounts[d.platform] || 0) + 1);
+        const genderCounts = {};
+        data.forEach(d => genderCounts[d.gender] = (genderCounts[d.gender] || 0) + 1);
+        const ageCounts = {};
+        data.forEach(d => ageCounts[d.agegroup] = (ageCounts[d.agegroup] || 0) + 1);
+        const spendBrackets = { '<₹2k': 0, '₹2–5k': 0, '₹5–10k': 0, '>₹10k': 0 };
+        data.forEach(d => {
+            if (d.monthlyspend < 2000) spendBrackets['<₹2k']++;
+            else if (d.monthlyspend < 5000) spendBrackets['₹2–5k']++;
+            else if (d.monthlyspend < 10000) spendBrackets['₹5–10k']++;
+            else spendBrackets['>₹10k']++;
+        });
+        const avgSpend = data.reduce((sum, d) => sum + d.monthlyspend, 0) / data.length;
+        const repeatRate = (data.filter(d => d.repeatbuyer === 'Yes').length / data.length) * 100;
+        const avgSatisfaction = data.reduce((sum, d) => sum + d.satisfactionscore, 0) / data.length;
+        const avgOrders = data.reduce((sum, d) => sum + d.orderfrequency, 0) / data.length;
+
+        // Set initial KPI targets
+        document.querySelector('.kpi-value').dataset.target = avgSpend.toFixed(0);
+        document.querySelectorAll('.kpi-value')[1].dataset.target = repeatRate.toFixed(1);
+        document.querySelectorAll('.kpi-value')[2].dataset.target = avgSatisfaction.toFixed(2);
+        document.querySelectorAll('.kpi-value')[3].dataset.target = avgOrders.toFixed(1);
+
         // Tab switching
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
@@ -571,6 +632,101 @@
                 document.getElementById(tab).classList.add('active');
             });
         });
+
+        // Data loading
+        document.getElementById('loadDataBtn').addEventListener('click', () => {
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) {
+                alert('Please select a CSV file.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const csv = e.target.result;
+                data = parseCSV(csv);
+                isDataLoaded = true;
+                document.getElementById('dataStatus').textContent = `Data loaded: ${data.length} records.`;
+                updateDashboard();
+            };
+            reader.readAsText(file);
+        });
+
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/ /g, ''));
+            const result = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const values = lines[i].split(',').map(v => v.trim());
+                const obj = {};
+                headers.forEach((h, idx) => {
+                    let val = values[idx];
+                    if (h === 'monthlyspend' || h === 'satisfactionscore' || h === 'orderfrequency') {
+                        val = parseFloat(val);
+                    }
+                    obj[h] = val;
+                });
+                result.push(obj);
+            }
+            return result;
+        }
+
+        function updateDashboard() {
+            // Update KPIs
+            const avgSpend = data.reduce((sum, d) => sum + d.monthlyspend, 0) / data.length;
+            const repeatRate = (data.filter(d => d.repeatbuyer === 'Yes').length / data.length) * 100;
+            const avgSatisfaction = data.reduce((sum, d) => sum + d.satisfactionscore, 0) / data.length;
+            const avgOrders = data.reduce((sum, d) => sum + d.orderfrequency, 0) / data.length;
+
+            document.querySelector('[data-target]').dataset.target = avgSpend.toFixed(0);
+            document.querySelectorAll('.kpi-value')[1].dataset.target = repeatRate.toFixed(1);
+            document.querySelectorAll('.kpi-value')[2].dataset.target = avgSatisfaction.toFixed(2);
+            document.querySelectorAll('.kpi-value')[3].dataset.target = avgOrders.toFixed(1);
+
+            // Update charts
+            updateCharts();
+        }
+
+        function updateCharts() {
+            // Platform chart
+            const platformCounts = {};
+            data.forEach(d => {
+                platformCounts[d.platform] = (platformCounts[d.platform] || 0) + 1;
+            });
+            platformChart.data.labels = Object.keys(platformCounts);
+            platformChart.data.datasets[0].data = Object.values(platformCounts);
+            platformChart.update();
+
+            // Gender chart
+            const genderCounts = {};
+            data.forEach(d => {
+                genderCounts[d.gender] = (genderCounts[d.gender] || 0) + 1;
+            });
+            genderChart.data.datasets[0].data = [genderCounts['Male'] || 0, genderCounts['Female'] || 0];
+            genderChart.update();
+
+            // Age chart
+            const ageCounts = {};
+            data.forEach(d => {
+                ageCounts[d.agegroup] = (ageCounts[d.agegroup] || 0) + 1;
+            });
+            ageChart.data.labels = Object.keys(ageCounts);
+            ageChart.data.datasets[0].data = Object.values(ageCounts);
+            ageChart.update();
+
+            // Spend brackets
+            const spendBrackets = { '<₹2k': 0, '₹2–5k': 0, '₹5–10k': 0, '>₹10k': 0 };
+            data.forEach(d => {
+                if (d.monthlyspend < 2000) spendBrackets['<₹2k']++;
+                else if (d.monthlyspend < 5000) spendBrackets['₹2–5k']++;
+                else if (d.monthlyspend < 10000) spendBrackets['₹5–10k']++;
+                else spendBrackets['>₹10k']++;
+            });
+            spendChart.data.datasets[0].data = Object.values(spendBrackets);
+            spendChart.update();
+
+            // Other charts can be updated similarly
+        }
 
         // Animated counters
         function animateCounter(element, target) {
@@ -627,13 +783,13 @@
         };
 
         // Platform chart
-        new Chart(document.getElementById('platformChart'), {
+        let platformChart = new Chart(document.getElementById('platformChart'), {
             type: 'bar',
             data: {
-                labels: ['Amazon', 'Flipkart', 'Meesho', 'Myntra', 'Others'],
+                labels: Object.keys(platformCounts),
                 datasets: [{
                     label: 'Platform Preference (%)',
-                    data: [34, 28, 16, 14, 8],
+                    data: Object.values(platformCounts).map(c => (c / data.length * 100).toFixed(1)),
                     backgroundColor: '#00c9b1'
                 }]
             },
@@ -641,12 +797,12 @@
         });
 
         // Gender chart
-        new Chart(document.getElementById('genderChart'), {
+        let genderChart = new Chart(document.getElementById('genderChart'), {
             type: 'pie',
             data: {
                 labels: ['Male', 'Female'],
                 datasets: [{
-                    data: [54, 46],
+                    data: [genderCounts['Male'] / data.length * 100, genderCounts['Female'] / data.length * 100],
                     backgroundColor: ['#f5a623', '#00c9b1']
                 }]
             },
@@ -659,13 +815,13 @@
         });
 
         // Age chart
-        new Chart(document.getElementById('ageChart'), {
+        let ageChart = new Chart(document.getElementById('ageChart'), {
             type: 'bar',
             data: {
-                labels: ['18–24', '25–34', '35–44', '45+'],
+                labels: Object.keys(ageCounts),
                 datasets: [{
                     label: 'Age Group Distribution (%)',
-                    data: [22, 38, 25, 15],
+                    data: Object.values(ageCounts).map(c => (c / data.length * 100).toFixed(1)),
                     backgroundColor: '#f5a623'
                 }]
             },
@@ -673,12 +829,12 @@
         });
 
         // Spend chart
-        new Chart(document.getElementById('spendChart'), {
+        let spendChart = new Chart(document.getElementById('spendChart'), {
             type: 'doughnut',
             data: {
-                labels: ['<₹2k', '₹2–5k', '₹5–10k', '>₹10k'],
+                labels: Object.keys(spendBrackets),
                 datasets: [{
-                    data: [18, 34, 31, 17],
+                    data: Object.values(spendBrackets).map(c => (c / data.length * 100).toFixed(1)),
                     backgroundColor: ['#e74c3c', '#f5a623', '#00c9b1', '#9b59b6']
                 }]
             },
@@ -835,6 +991,7 @@
                 const target = parseFloat(el.dataset.target);
                 animateCounter(el, target);
             });
+            document.getElementById('dataStatus').textContent = `Default simulated data loaded: ${data.length} records.`;
         });
     </script>
 </body>
